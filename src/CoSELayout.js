@@ -18,7 +18,7 @@ var LinkedList = require('layout-base').LinkedList;
 
 function CoSELayout() {
   FDLayout.call(this);
-  
+
   this.toBeTiled = {}; // Memorize if a node is to be tiled or is tiled
   this.constraints = {}; // keep layout constraints
 }
@@ -69,19 +69,19 @@ CoSELayout.prototype.initParameters = function () {
             FDLayoutConstants.DEFAULT_GRAVITY_RANGE_FACTOR;
     this.compoundGravityRangeFactor =
             FDLayoutConstants.DEFAULT_COMPOUND_GRAVITY_RANGE_FACTOR;
-    
+
     // variables for tree reduction support
     this.prunedNodesAll = [];
     this.growTreeIterations = 0;
     this.afterGrowthIterations = 0;
     this.isTreeGrowing = false;
     this.isGrowthFinished = false;
-    
+
     // variables for cooling
     this.coolingCycle = 0;
     this.maxCoolingCycle = this.maxIterations/FDLayoutConstants.CONVERGENCE_CHECK_PERIOD;
     this.finalTemperature = FDLayoutConstants.CONVERGENCE_CHECK_PERIOD/this.maxIterations;
-    this.coolingAdjuster = 1;     
+    this.coolingAdjuster = 1;
   }
 };
 
@@ -105,7 +105,7 @@ CoSELayout.prototype.classicLayout = function () {
   this.graphManager.calcInclusionTreeDepths();
   this.graphManager.getRoot().calcEstimatedSize();
   this.calcIdealEdgeLengths();
-  
+
   if (!this.incremental)
   {
     var forest = this.getFlatForest();
@@ -118,26 +118,26 @@ CoSELayout.prototype.classicLayout = function () {
     // The graph associated with this layout is not flat or a forest
     else
     {
-      // Reduce the trees when incremental mode is not enabled and graph is not a forest 
+      // Reduce the trees when incremental mode is not enabled and graph is not a forest
       this.reduceTrees();
       // Update nodes that gravity will be applied
       this.graphManager.resetAllNodesToApplyGravitation();
       var allNodes = new Set(this.getAllNodes());
       var intersection = this.nodesWithGravity.filter(x => allNodes.has(x));
       this.graphManager.setAllNodesToApplyGravitation(intersection);
-      
+
       this.positionNodesRandomly();
     }
   }
   else {
     if(CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL){
-      // Reduce the trees in incremental mode if only this constant is set to true 
+      // Reduce the trees in incremental mode if only this constant is set to true
       this.reduceTrees();
       // Update nodes that gravity will be applied
       this.graphManager.resetAllNodesToApplyGravitation();
       var allNodes = new Set(this.getAllNodes());
       var intersection = this.nodesWithGravity.filter(x => allNodes.has(x));
-      this.graphManager.setAllNodesToApplyGravitation(intersection);        
+      this.graphManager.setAllNodesToApplyGravitation(intersection);
     }
   }
 
@@ -156,16 +156,16 @@ CoSELayout.prototype.classicLayout = function () {
 
 CoSELayout.prototype.tick = function() {
   this.totalIterations++;
-  
+
   if (this.totalIterations === this.maxIterations && !this.isTreeGrowing && !this.isGrowthFinished) {
     if(this.prunedNodesAll.length > 0){
       this.isTreeGrowing = true;
     }
     else {
-      return true;  
+      return true;
     }
   }
-  
+
   if (this.totalIterations % FDLayoutConstants.CONVERGENCE_CHECK_PERIOD == 0  && !this.isTreeGrowing && !this.isGrowthFinished)
   {
     if (this.isConverged())
@@ -174,26 +174,26 @@ CoSELayout.prototype.tick = function() {
         this.isTreeGrowing = true;
       }
       else {
-        return true;  
-      } 
+        return true;
+      }
     }
-    
+
     this.coolingCycle++;
 
-    if(this.layoutQuality == 0) {  
+    if(this.layoutQuality == 0) {
       // quality - "draft"
       this.coolingAdjuster = this.coolingCycle;
     }
-    else if(this.layoutQuality == 1) { 
+    else if(this.layoutQuality == 1) {
       // quality - "default"
       this.coolingAdjuster = this.coolingCycle / 3;
-    }    
+    }
 
     // cooling schedule is based on http://www.btluke.com/simanf1.html -> cooling schedule 3
     this.coolingFactor = Math.max(this.initialCoolingFactor - Math.pow(this.coolingCycle, Math.log(100 * (this.initialCoolingFactor - this.finalTemperature)) / Math.log(this.maxCoolingCycle))/100 * this.coolingAdjuster, this.finalTemperature);
     this.animationPeriod = Math.ceil(this.initialAnimationPeriod * Math.sqrt(this.coolingFactor));
   }
-  // Operations while tree is growing again 
+  // Operations while tree is growing again
   if(this.isTreeGrowing){
     if(this.growTreeIterations % 10 == 0){
       if(this.prunedNodesAll.length > 0) {
@@ -205,14 +205,14 @@ CoSELayout.prototype.tick = function() {
         var allNodes = new Set(this.getAllNodes());
         var intersection = this.nodesWithGravity.filter(x => allNodes.has(x));
         this.graphManager.setAllNodesToApplyGravitation(intersection);
-        
+
         this.graphManager.updateBounds();
-        this.updateGrid(); 
-        this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL; 
+        this.updateGrid();
+        this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL;
       }
       else {
-        this.isTreeGrowing = false;  
-        this.isGrowthFinished = true; 
+        this.isTreeGrowing = false;
+        this.isGrowthFinished = true;
       }
     }
     this.growTreeIterations++;
@@ -221,19 +221,19 @@ CoSELayout.prototype.tick = function() {
   if(this.isGrowthFinished){
     if (this.isConverged())
     {
-      return true;  
+      return true;
     }
     if(this.afterGrowthIterations % 10 == 0){
       this.graphManager.updateBounds();
-      this.updateGrid(); 
+      this.updateGrid();
     }
     this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL * ((100 - this.afterGrowthIterations) / 100);
     this.afterGrowthIterations++;
   }
-  
+
   var gridUpdateAllowed = !this.isTreeGrowing && !this.isGrowthFinished;
   var forceToNodeSurroundingUpdate = (this.growTreeIterations % 10 == 1 && this.isTreeGrowing) || (this.afterGrowthIterations % 10 == 1 && this.isGrowthFinished);
-          
+
   this.totalDisplacement = 0;
   this.graphManager.updateBounds();
   this.calcSpringForces();
@@ -241,7 +241,7 @@ CoSELayout.prototype.tick = function() {
   this.calcGravitationalForces();
   this.moveNodes();
   this.animate();
-  
+
   return false; // Layout is not ended yet return false
 };
 
@@ -259,7 +259,7 @@ CoSELayout.prototype.getPositionsData = function() {
       h: rect.height
     };
   }
-  
+
   return pData;
 };
 
@@ -267,7 +267,7 @@ CoSELayout.prototype.runSpringEmbedder = function () {
   this.initialAnimationPeriod = 25;
   this.animationPeriod = this.initialAnimationPeriod;
   var layoutEnded = false;
-  
+
   // If aminate option is 'during' signal that layout is supposed to start iterating
   if ( FDLayoutConstants.ANIMATE === 'during' ) {
     this.emit('layoutstarted');
@@ -287,13 +287,13 @@ CoSELayout.prototype.moveNodes = function () {
   var lNodes = this.getAllNodes();
   var node;
 
-  // calculate displacement for each node 
+  // calculate displacement for each node
   for (var i = 0; i < lNodes.length; i++)
   {
     node = lNodes[i];
     node.calculateDisplacement();
   }
-  
+
   if(Object.keys(this.constraints).length > 0){
     this.updateDisplacements();
   }
@@ -303,7 +303,7 @@ CoSELayout.prototype.moveNodes = function () {
   {
     node = lNodes[i];
     node.move();
-  }  
+  }
 };
 
 // constraint related methods: initConstraintVariables and updateDisplacements
@@ -360,12 +360,12 @@ CoSELayout.prototype.initConstraintVariables = function () {
       }
     }
   }
-  
-  if(this.constraints.relativePlacementConstraint) {         
+
+  if(this.constraints.relativePlacementConstraint) {
     var nodeToDummyForVerticalAlignment = new Map();
     var nodeToDummyForHorizontalAlignment = new Map();
     this.dummyToNodeForVerticalAlignment = new Map();
-    this.dummyToNodeForHorizontalAlignment = new Map();     
+    this.dummyToNodeForHorizontalAlignment = new Map();
     this.fixedNodesOnHorizontal = new Set();
     this.fixedNodesOnVertical = new Set();
 
@@ -374,7 +374,7 @@ CoSELayout.prototype.initConstraintVariables = function () {
       self.fixedNodesOnHorizontal.add(nodeId);
       self.fixedNodesOnVertical.add(nodeId);
     });
-    
+
     if(this.constraints.alignmentConstraint) {
       if(this.constraints.alignmentConstraint.vertical) {
         var verticalAlignment = this.constraints.alignmentConstraint.vertical;
@@ -398,14 +398,14 @@ CoSELayout.prototype.initConstraintVariables = function () {
             self.dummyToNodeForHorizontalAlignment.get("dummy" + i).push(nodeId);
             if(self.fixedNodeSet.has(nodeId)){
               self.fixedNodesOnVertical.add("dummy" + i);
-            }              
+            }
           });
         }
-      }        
+      }
     }
-    
+
     if(CoSEConstants.RELAX_MOVEMENT_ON_CONSTRAINTS) {
-      
+
       this.shuffle = function (array) {
         var j, x, i;
         for (i = array.length - 1; i >= (2 * array.length / 3); i--) {
@@ -418,7 +418,7 @@ CoSELayout.prototype.initConstraintVariables = function () {
       };
 
       this.nodesInRelativeHorizontal = [];
-      this.nodesInRelativeVertical = [];    
+      this.nodesInRelativeVertical = [];
       this.nodeToRelativeConstraintMapHorizontal = new Map();
       this.nodeToRelativeConstraintMapVertical = new Map();
       this.nodeToTempPositionMapHorizontal = new Map();
@@ -429,10 +429,10 @@ CoSELayout.prototype.initConstraintVariables = function () {
         if(constraint.left) {
           let nodeIdLeft = nodeToDummyForVerticalAlignment.has(constraint.left) ? nodeToDummyForVerticalAlignment.get(constraint.left) : constraint.left;
           let nodeIdRight = nodeToDummyForVerticalAlignment.has(constraint.right) ? nodeToDummyForVerticalAlignment.get(constraint.right) : constraint.right;
-          
+
           if(!self.nodesInRelativeHorizontal.includes(nodeIdLeft)) {
             self.nodesInRelativeHorizontal.push(nodeIdLeft);
-            self.nodeToRelativeConstraintMapHorizontal.set(nodeIdLeft, []);            
+            self.nodeToRelativeConstraintMapHorizontal.set(nodeIdLeft, []);
             if(self.dummyToNodeForVerticalAlignment.has(nodeIdLeft)) {
               self.nodeToTempPositionMapHorizontal.set(nodeIdLeft, self.idToNodeMap.get(self.dummyToNodeForVerticalAlignment.get(nodeIdLeft)[0]).getCenterX());
             }
@@ -448,16 +448,16 @@ CoSELayout.prototype.initConstraintVariables = function () {
             }
             else {
               self.nodeToTempPositionMapHorizontal.set(nodeIdRight, self.idToNodeMap.get(nodeIdRight).getCenterX());
-            }          
+            }
           }
-          
+
           self.nodeToRelativeConstraintMapHorizontal.get(nodeIdLeft).push({right: nodeIdRight, gap: constraint.gap});
           self.nodeToRelativeConstraintMapHorizontal.get(nodeIdRight).push({left: nodeIdLeft, gap: constraint.gap});
         }
         else {
           let nodeIdTop = nodeToDummyForHorizontalAlignment.has(constraint.top) ? nodeToDummyForHorizontalAlignment.get(constraint.top) : constraint.top;
           let nodeIdBottom = nodeToDummyForHorizontalAlignment.has(constraint.bottom) ? nodeToDummyForHorizontalAlignment.get(constraint.bottom) : constraint.bottom;
-          
+
           if(!self.nodesInRelativeVertical.includes(nodeIdTop)) {
             self.nodesInRelativeVertical.push(nodeIdTop);
             self.nodeToRelativeConstraintMapVertical.set(nodeIdTop, []);
@@ -476,8 +476,8 @@ CoSELayout.prototype.initConstraintVariables = function () {
             }
             else {
               self.nodeToTempPositionMapVertical.set(nodeIdBottom, self.idToNodeMap.get(nodeIdBottom).getCenterY());
-            }          
-          }          
+            }
+          }
           self.nodeToRelativeConstraintMapVertical.get(nodeIdTop).push({bottom: nodeIdBottom, gap: constraint.gap});
           self.nodeToRelativeConstraintMapVertical.get(nodeIdBottom).push({top: nodeIdTop, gap: constraint.gap});
         }
@@ -487,7 +487,7 @@ CoSELayout.prototype.initConstraintVariables = function () {
       var subGraphOnHorizontal = new Map(); // subgraph from vertical RP constraints
       var subGraphOnVertical = new Map(); // subgraph from vertical RP constraints
 
-      // construct subgraphs from relative placement constraints 
+      // construct subgraphs from relative placement constraints
       this.constraints.relativePlacementConstraint.forEach(function(constraint) {
         if(constraint.left) {
           var left = nodeToDummyForVerticalAlignment.has(constraint.left) ? nodeToDummyForVerticalAlignment.get(constraint.left) : constraint.left;
@@ -496,34 +496,34 @@ CoSELayout.prototype.initConstraintVariables = function () {
             subGraphOnHorizontal.get(left).push(right);
           }
           else {
-            subGraphOnHorizontal.set(left, [right]); 
+            subGraphOnHorizontal.set(left, [right]);
           }
           if(subGraphOnHorizontal.has(right)) {
-            subGraphOnHorizontal.get(right).push(left);          
+            subGraphOnHorizontal.get(right).push(left);
           }
           else {
-            subGraphOnHorizontal.set(right, [left]);           
+            subGraphOnHorizontal.set(right, [left]);
           }
         }
         else {
           var top = nodeToDummyForHorizontalAlignment.has(constraint.top) ? nodeToDummyForHorizontalAlignment.get(constraint.top) : constraint.top;
-          var bottom = nodeToDummyForHorizontalAlignment.has(constraint.bottom) ? nodeToDummyForHorizontalAlignment.get(constraint.bottom) : constraint.bottom;        
+          var bottom = nodeToDummyForHorizontalAlignment.has(constraint.bottom) ? nodeToDummyForHorizontalAlignment.get(constraint.bottom) : constraint.bottom;
           if(subGraphOnVertical.has(top)) {
             subGraphOnVertical.get(top).push(bottom);
           }
           else {
-            subGraphOnVertical.set(top, [bottom]);          
-          }        
+            subGraphOnVertical.set(top, [bottom]);
+          }
           if(subGraphOnVertical.has(bottom)) {
-            subGraphOnVertical.get(bottom).push(top);          
+            subGraphOnVertical.get(bottom).push(top);
           }
           else {
-            subGraphOnVertical.set(bottom, [top]);           
-          }        
-        }      
-      });   
+            subGraphOnVertical.set(bottom, [top]);
+          }
+        }
+      });
 
-      // function to construct components from a given graph 
+      // function to construct components from a given graph
       // also returns an array that keeps whether each component contains fixed node
       var constructComponents = function(graph, fixedNodes){
         let components = [];
@@ -567,7 +567,7 @@ CoSELayout.prototype.initConstraintVariables = function () {
       this.fixedComponentsOnHorizontal = resultOnHorizontal.isFixed;
       var resultOnVertical = constructComponents(subGraphOnVertical, self.fixedNodesOnVertical);
       this.componentsOnVertical = resultOnVertical.components;
-      this.fixedComponentsOnVertical = resultOnVertical.isFixed;   
+      this.fixedComponentsOnVertical = resultOnVertical.isFixed;
     }
   }
 };
@@ -619,16 +619,16 @@ CoSELayout.prototype.updateDisplacements = function () {
       }
     }
   }
-  
+
   if(this.constraints.relativePlacementConstraint){
-    
+
     if(CoSEConstants.RELAX_MOVEMENT_ON_CONSTRAINTS) {
       // shuffle array to randomize node processing order
       if (this.totalIterations % 10 == 0) {
         this.shuffle(this.nodesInRelativeHorizontal);
         this.shuffle(this.nodesInRelativeVertical);
-      }      
-      
+      }
+
       this.nodesInRelativeHorizontal.forEach(function(nodeId) {
         if(!self.fixedNodesOnHorizontal.has(nodeId)) {
           var displacement = 0;
@@ -637,7 +637,7 @@ CoSELayout.prototype.updateDisplacements = function () {
           }
           else {
             displacement = self.idToNodeMap.get(nodeId).displacementX;
-          }    
+          }
           self.nodeToRelativeConstraintMapHorizontal.get(nodeId).forEach(function(constraint) {
             if(constraint.right) {
               var diff = (self.nodeToTempPositionMapHorizontal.get(constraint.right) - self.nodeToTempPositionMapHorizontal.get(nodeId)) - displacement;
@@ -649,7 +649,7 @@ CoSELayout.prototype.updateDisplacements = function () {
               var diff = (self.nodeToTempPositionMapHorizontal.get(nodeId) - self.nodeToTempPositionMapHorizontal.get(constraint.left)) + displacement;
               if(diff < constraint.gap) {
                 displacement += constraint.gap - diff;
-              }          
+              }
             }
           });
           self.nodeToTempPositionMapHorizontal.set(nodeId, self.nodeToTempPositionMapHorizontal.get(nodeId) + displacement);
@@ -660,7 +660,7 @@ CoSELayout.prototype.updateDisplacements = function () {
           }
           else {
             self.idToNodeMap.get(nodeId).displacementX = displacement;
-          }         
+          }
         }
       });
 
@@ -672,7 +672,7 @@ CoSELayout.prototype.updateDisplacements = function () {
           }
           else {
             displacement = self.idToNodeMap.get(nodeId).displacementY;
-          }    
+          }
           self.nodeToRelativeConstraintMapVertical.get(nodeId).forEach(function(constraint) {
             if(constraint.bottom) {
               var diff = (self.nodeToTempPositionMapVertical.get(constraint.bottom) - self.nodeToTempPositionMapVertical.get(nodeId)) - displacement;
@@ -684,7 +684,7 @@ CoSELayout.prototype.updateDisplacements = function () {
               var diff = (self.nodeToTempPositionMapVertical.get(nodeId) - self.nodeToTempPositionMapVertical.get(constraint.top)) + displacement;
               if(diff < constraint.gap) {
                 displacement += constraint.gap - diff;
-              }          
+              }
             }
           });
           self.nodeToTempPositionMapVertical.set(nodeId, self.nodeToTempPositionMapVertical.get(nodeId) + displacement);
@@ -695,15 +695,15 @@ CoSELayout.prototype.updateDisplacements = function () {
           }
           else {
             self.idToNodeMap.get(nodeId).displacementY = displacement;
-          }        
+          }
         }
-      });    
+      });
     }
     else {
       for(var i = 0; i < this.componentsOnHorizontal.length; i++) {
         var component = this.componentsOnHorizontal[i];
         if(this.fixedComponentsOnHorizontal[i]) {
-          for(var j = 0; j < component.length; j++){ 
+          for(var j = 0; j < component.length; j++){
             if(this.dummyToNodeForVerticalAlignment.has(component[j])) {
               this.dummyToNodeForVerticalAlignment.get(component[j]).forEach(function(nodeId){
                 self.idToNodeMap.get(nodeId).displacementX = 0;
@@ -711,7 +711,7 @@ CoSELayout.prototype.updateDisplacements = function () {
             }
             else {
               this.idToNodeMap.get(component[j]).displacementX = 0;
-            }            
+            }
           }
         }
         else {
@@ -729,7 +729,7 @@ CoSELayout.prototype.updateDisplacements = function () {
             }
           }
           var averageDisplacement = sum / count;
-          for(var j = 0; j < component.length; j++){ 
+          for(var j = 0; j < component.length; j++){
             if(this.dummyToNodeForVerticalAlignment.has(component[j])) {
               this.dummyToNodeForVerticalAlignment.get(component[j]).forEach(function(nodeId){
                 self.idToNodeMap.get(nodeId).displacementX = averageDisplacement;
@@ -737,15 +737,15 @@ CoSELayout.prototype.updateDisplacements = function () {
             }
             else {
               this.idToNodeMap.get(component[j]).displacementX = averageDisplacement;
-            }            
-          }        
+            }
+          }
         }
       }
 
       for(var i = 0; i < this.componentsOnVertical.length; i++) {
         var component = this.componentsOnVertical[i];
         if(this.fixedComponentsOnVertical[i]) {
-          for(var j = 0; j < component.length; j++){ 
+          for(var j = 0; j < component.length; j++){
             if(this.dummyToNodeForHorizontalAlignment.has(component[j])) {
               this.dummyToNodeForHorizontalAlignment.get(component[j]).forEach(function(nodeId){
                 self.idToNodeMap.get(nodeId).displacementY = 0;
@@ -753,7 +753,7 @@ CoSELayout.prototype.updateDisplacements = function () {
             }
             else {
               this.idToNodeMap.get(component[j]).displacementY = 0;
-            }            
+            }
           }
         }
         else {
@@ -771,7 +771,7 @@ CoSELayout.prototype.updateDisplacements = function () {
             }
           }
           var averageDisplacement = sum / count;
-          for(var j = 0; j < component.length; j++){ 
+          for(var j = 0; j < component.length; j++){
             if(this.dummyToNodeForHorizontalAlignment.has(component[j])) {
               this.dummyToNodeForHorizontalAlignment.get(component[j]).forEach(function(nodeId){
                 self.idToNodeMap.get(nodeId).displacementY = averageDisplacement;
@@ -779,8 +779,8 @@ CoSELayout.prototype.updateDisplacements = function () {
             }
             else {
               this.idToNodeMap.get(component[j]).displacementY = averageDisplacement;
-            }            
-          }        
+            }
+          }
         }
       }
     }
@@ -1059,8 +1059,8 @@ CoSELayout.prototype.groupZeroDegreeMembers = function () {
   // array of [parent_id x oneDegreeNode_id]
   var tempMemberGroups = {}; // A temporary map of parent node and its zero degree members
   this.memberGroups = {}; // A map of dummy parent node and its zero degree members whose parents are not to be tiled
-  this.idToDummyNode = {}; // A map of id to dummy node 
-  
+  this.idToDummyNode = {}; // A map of id to dummy node
+
   var zeroDegree = []; // List of zero degree nodes whose parents are not to be tiled
   var allNodes = this.graphManager.getAllNodes();
 
@@ -1101,9 +1101,9 @@ CoSELayout.prototype.groupZeroDegreeMembers = function () {
       dummyCompound.paddingRight = parent.paddingRight || 0;
       dummyCompound.paddingBottom = parent.paddingBottom || 0;
       dummyCompound.paddingTop = parent.paddingTop || 0;
-      
+
       self.idToDummyNode[dummyCompoundId] = dummyCompound;
-      
+
       var dummyParentGraph = self.getGraphManager().add(self.newGraph(), dummyCompound);
       var parentGraph = parent.getChild();
 
@@ -1113,7 +1113,7 @@ CoSELayout.prototype.groupZeroDegreeMembers = function () {
       // For each zero degree node in this level remove it from its parent graph and add it to the graph of dummy parent
       for (var i = 0; i < tempMemberGroups[p_id].length; i++) {
         var node = tempMemberGroups[p_id][i];
-        
+
         parentGraph.remove(node);
         dummyParentGraph.add(node);
       }
@@ -1129,7 +1129,7 @@ CoSELayout.prototype.clearCompounds = function () {
   this.performDFSOnCompounds();
 
   for (var i = 0; i < this.compoundOrder.length; i++) {
-    
+
     idToNode[this.compoundOrder[i].id] = this.compoundOrder[i];
     childGraphMap[this.compoundOrder[i].id] = [].concat(this.compoundOrder[i].getChild().getNodes());
 
@@ -1137,9 +1137,9 @@ CoSELayout.prototype.clearCompounds = function () {
     this.graphManager.remove(this.compoundOrder[i].getChild());
     this.compoundOrder[i].child = null;
   }
-  
+
   this.graphManager.resetAllNodes();
-  
+
   // Tile the removed children
   this.tileCompoundMembers(childGraphMap, idToNode);
 };
@@ -1173,7 +1173,7 @@ CoSELayout.prototype.repopulateCompounds = function () {
 CoSELayout.prototype.repopulateZeroDegreeMembers = function () {
   var self = this;
   var tiledPack = this.tiledZeroDegreePack;
-  
+
   Object.keys(tiledPack).forEach(function(id) {
     var compoundNode = self.idToDummyNode[id]; // Get the dummy compound by its id
     var horizontalMargin = compoundNode.paddingLeft;
@@ -1229,7 +1229,7 @@ CoSELayout.prototype.getNodeDegree = function (node) {
   var id = node.id;
   var edges = node.getEdges();
   var degree = 0;
-  
+
   // For the edges connected
   for (var i = 0; i < edges.length; i++) {
     var edge = edges[i];
@@ -1316,9 +1316,139 @@ CoSELayout.prototype.tileCompoundMembers = function (childGraphMap, idToNode) {
   });
 };
 
-CoSELayout.prototype.tileNodes = function (nodes, minWidth) {
+/*
+ * Calculates the ideal width for the rows. This method assumes that
+ * each node has the same sizes and calculates the ideal row width that
+ * approximates a square shaped complex accordingly. However, since nodes would
+ * have different sizes some rows would have different sizes and the resulting
+ * shape would not be an exact square.
+ */
+CoSELayout.prototype.calcIdealRowWidth = function(members, favorHorizontalDim) {
+  // To approximate a square shaped complex we need to make complex width equal to complex height.
+	// To achieve this we need to solve the following equation system for hc:
+	// (x + bx) * hc - bx = (y + by) * vc - by, hc * vc = n
+	// where x is the avarage width of the nodes, y is the avarage height of nodes
+	// bx and by are the buffer sizes in horizontal and vertical dimensions accordingly,
+	// hc and vc are the number of rows in horizontal and vertical dimensions
+	// n is number of members.
+
   var verticalPadding = CoSEConstants.TILING_PADDING_VERTICAL;
   var horizontalPadding = CoSEConstants.TILING_PADDING_HORIZONTAL;
+
+  // number of members
+  var membersSize = members.length;
+
+  // sum of the width of all members
+	var totalWidth = 0;
+
+	// sum of the height of all members
+	var totalHeight = 0;
+
+  var maxWidth = 0;
+
+  // traverse all members to calculate total width and total height and get the maximum members width
+  members.forEach( node => {
+    totalWidth += node.getWidth();
+    totalHeight += node.getHeight();
+
+    if (node.getWidth() > maxWidth)
+    {
+      maxWidth = node.getWidth();
+    }
+  } );
+
+  // average width of the members
+	var averageWidth = totalWidth / membersSize;
+
+	// average height of the members
+	var averageHeight = totalHeight / membersSize;
+
+	// solving the initial equation system for the hc yields the following second degree equation:
+	// hc^2 * (x+bx) + hc * (by - bx) - n * (y + by) = 0
+
+	// the delta value to solve the equation above for hc
+	var delta = Math.pow((verticalPadding - horizontalPadding), 2)
+			+ 4 * (averageWidth + horizontalPadding) * (averageHeight + verticalPadding) * membersSize;
+
+	// solve the equation using delta value to calculate the horizontal count
+	// that represents the number of nodes in an ideal row
+	// var horizontalCount = (horizontalPadding - verticalPadding + Math.sqrt(delta))
+	// 		/ (2 * (averageWidth + horizontalPadding));
+
+  var horizontalCountDouble = (horizontalPadding - verticalPadding + Math.sqrt(delta))
+			/ (2 * (averageWidth + horizontalPadding));
+  // TODO: ?
+	// round the calculated horizontal count up or down according to the favored dimension
+	var horizontalCount;
+
+	if (favorHorizontalDim)
+	{
+		horizontalCount = Math.ceil(horizontalCountDouble);
+	}
+	else
+	{
+		horizontalCount = Math.floor(horizontalCountDouble);
+  }
+
+  // ideal width to be calculated
+	var idealWidth = horizontalCount * (averageWidth + horizontalPadding) - horizontalPadding;
+
+	// if max width is bigger than calculated ideal width reset ideal width to it
+	if (maxWidth > idealWidth)
+	{
+		idealWidth = maxWidth;
+	}
+
+	// add the left-right margins to the ideal row width
+	idealWidth += horizontalPadding * 2;
+
+	// return the ideal row width1
+	return idealWidth;
+
+}
+
+CoSELayout.prototype.tileNodes = function(nodes, minWidth) {
+  var horizontalOrg = this.tileNodesByFavoringDim(nodes, minWidth, true);
+  var verticalOrg = this.tileNodesByFavoringDim(nodes, minWidth, false);
+
+  var horizontalRatio = this.getOrgRatio( horizontalOrg );
+  var verticalRatio = this.getOrgRatio( verticalOrg );
+  var bestOrg;
+
+  // the best ratio is the one that is closer to 1 since none of the is smaller than 1
+	// and the best organization is the one that has the best ratio
+	if (verticalRatio < horizontalRatio)
+	{
+		bestOrg = verticalOrg;
+	}
+	else
+	{
+		bestOrg = horizontalOrg;
+	}
+
+	return bestOrg;
+};
+
+CoSELayout.prototype.getOrgRatio = function( organization ) {
+  // get dimensions and calculate the initial ratio
+	var width = organization.width;
+	var height = organization.height;
+	var ratio = width / height;
+
+	// if the initial ratio is less then 1 then inverse it
+	if (ratio < 1)
+	{
+		ratio = 1 / ratio;
+	}
+
+	// return the normalized ratio
+	return ratio;
+};
+
+CoSELayout.prototype.tileNodesByFavoringDim = function (nodes, minWidth, favorHorizontalDim) {
+  var verticalPadding = CoSEConstants.TILING_PADDING_VERTICAL;
+  var horizontalPadding = CoSEConstants.TILING_PADDING_HORIZONTAL;
+  var tilingSortBy = CoSEConstants.TILING_SORT_BY;
   var organization = {
     rows: [],
     rowWidth: [],
@@ -1329,24 +1459,41 @@ CoSELayout.prototype.tileNodes = function (nodes, minWidth) {
     horizontalPadding: horizontalPadding
   };
 
+  if ( tilingSortBy ) {
+    organization.idealRowWidth = this.calcIdealRowWidth( nodes, favorHorizontalDim );
+  }
+
+  var getCompVal = function( n ) {
+    if ( organization.idealRowWidth ) {
+      return tilingSortBy( n.id );
+    }
+    return n.rect.width * n.rect.height;
+  };
+
   // Sort the nodes in ascending order of their areas
   nodes.sort(function (n1, n2) {
-    if (n1.rect.width * n1.rect.height > n2.rect.width * n2.rect.height)
-      return -1;
-    if (n1.rect.width * n1.rect.height < n2.rect.width * n2.rect.height)
+    var n1CompVal = getCompVal( n1 );
+    var n2CompVal = getCompVal( n2 );
+    if (n1CompVal > n2CompVal)
       return 1;
+    if (n1CompVal < n2CompVal)
+      return -1;
     return 0;
   });
 
   // Create the organization -> tile members
   for (var i = 0; i < nodes.length; i++) {
     var lNode = nodes[i];
-    
+
     if (organization.rows.length == 0) {
       this.insertNodeToRow(organization, lNode, 0, minWidth);
     }
     else if (this.canAddHorizontal(organization, lNode.rect.width, lNode.rect.height)) {
-      this.insertNodeToRow(organization, lNode, this.getShortestRowIndex(organization), minWidth);
+      var rowIndex = organization.rows.length - 1;
+      if ( !organization.idealRowWidth ){
+        rowIndex = this.getShortestRowIndex(organization);
+      }
+      this.insertNodeToRow(organization, lNode, rowIndex, minWidth);
     }
     else {
       this.insertNodeToRow(organization, lNode, organization.rows.length, minWidth);
@@ -1436,6 +1583,15 @@ CoSELayout.prototype.getLongestRowIndex = function (organization) {
 * the aspect ratio(1) or not.
 */
 CoSELayout.prototype.canAddHorizontal = function (organization, extraWidth, extraHeight) {
+
+  // if there is an ideal row width specified use it instead of checking the aspect ratio
+  if ( organization.idealRowWidth ) {
+    var lastRowIndex = organization.rows.length - 1;
+    var lastRowWidth = organization.rowWidth[lastRowIndex];
+
+    // check and return if ideal row width will be exceed if the node is added to the row
+  	return lastRowWidth + extraWidth + organization.horizontalPadding <= organization.idealRowWidth;
+  }
 
   var sri = this.getShortestRowIndex(organization);
 
@@ -1546,30 +1702,30 @@ CoSELayout.prototype.tilingPostLayout = function() {
 // -----------------------------------------------------------------------------
 // Section: Tree Reduction methods
 // -----------------------------------------------------------------------------
-// Reduce trees 
+// Reduce trees
 CoSELayout.prototype.reduceTrees = function ()
 {
   var prunedNodesAll = [];
   var containsLeaf = true;
   var node;
-  
+
   while(containsLeaf) {
     var allNodes = this.graphManager.getAllNodes();
     var prunedNodesInStepTemp = [];
     containsLeaf = false;
-    
+
     for (var i = 0; i < allNodes.length; i++) {
       node = allNodes[i];
       if(node.getEdges().length == 1 && !node.getEdges()[0].isInterGraph && node.getChild() == null){
         prunedNodesInStepTemp.push([node, node.getEdges()[0], node.getOwner()]);
         containsLeaf = true;
-      }  
+      }
     }
     if(containsLeaf == true){
       var prunedNodesInStep = [];
       for(var j = 0; j < prunedNodesInStepTemp.length; j++){
         if(prunedNodesInStepTemp[j][0].getEdges().length == 1){
-          prunedNodesInStep.push(prunedNodesInStepTemp[j]);  
+          prunedNodesInStep.push(prunedNodesInStepTemp[j]);
           prunedNodesInStepTemp[j][0].getOwner().remove(prunedNodesInStepTemp[j][0]);
         }
       }
@@ -1581,18 +1737,18 @@ CoSELayout.prototype.reduceTrees = function ()
   this.prunedNodesAll = prunedNodesAll;
 };
 
-// Grow tree one step 
+// Grow tree one step
 CoSELayout.prototype.growTree = function(prunedNodesAll)
 {
-  var lengthOfPrunedNodesInStep = prunedNodesAll.length; 
-  var prunedNodesInStep = prunedNodesAll[lengthOfPrunedNodesInStep - 1];  
+  var lengthOfPrunedNodesInStep = prunedNodesAll.length;
+  var prunedNodesInStep = prunedNodesAll[lengthOfPrunedNodesInStep - 1];
 
-  var nodeData;  
+  var nodeData;
   for(var i = 0; i < prunedNodesInStep.length; i++){
     nodeData = prunedNodesInStep[i];
-    
+
     this.findPlaceforPrunedNode(nodeData);
-    
+
     nodeData[2].add(nodeData[0]);
     nodeData[2].add(nodeData[1], nodeData[1].source, nodeData[1].target);
   }
@@ -1604,45 +1760,45 @@ CoSELayout.prototype.growTree = function(prunedNodesAll)
 
 // Find an appropriate position to replace pruned node, this method can be improved
 CoSELayout.prototype.findPlaceforPrunedNode = function(nodeData){
-  
-  var gridForPrunedNode;  
+
+  var gridForPrunedNode;
   var nodeToConnect;
   var prunedNode = nodeData[0];
   if(prunedNode == nodeData[1].source){
     nodeToConnect = nodeData[1].target;
   }
   else {
-    nodeToConnect = nodeData[1].source;  
+    nodeToConnect = nodeData[1].source;
   }
   var startGridX = nodeToConnect.startX;
   var finishGridX = nodeToConnect.finishX;
   var startGridY = nodeToConnect.startY;
-  var finishGridY = nodeToConnect.finishY; 
-  
+  var finishGridY = nodeToConnect.finishY;
+
   var upNodeCount = 0;
   var downNodeCount = 0;
   var rightNodeCount = 0;
   var leftNodeCount = 0;
   var controlRegions = [upNodeCount, rightNodeCount, downNodeCount, leftNodeCount]
-  
+
   if(startGridY > 0){
     for(var i = startGridX; i <= finishGridX; i++ ){
-      controlRegions[0] += (this.grid[i][startGridY - 1].length + this.grid[i][startGridY].length - 1);   
+      controlRegions[0] += (this.grid[i][startGridY - 1].length + this.grid[i][startGridY].length - 1);
     }
   }
   if(finishGridX < this.grid.length - 1){
     for(var i = startGridY; i <= finishGridY; i++ ){
-      controlRegions[1] += (this.grid[finishGridX + 1][i].length + this.grid[finishGridX][i].length - 1);   
+      controlRegions[1] += (this.grid[finishGridX + 1][i].length + this.grid[finishGridX][i].length - 1);
     }
   }
   if(finishGridY < this.grid[0].length - 1){
     for(var i = startGridX; i <= finishGridX; i++ ){
-      controlRegions[2] += (this.grid[i][finishGridY + 1].length + this.grid[i][finishGridY].length - 1);   
+      controlRegions[2] += (this.grid[i][finishGridY + 1].length + this.grid[i][finishGridY].length - 1);
     }
   }
   if(startGridX > 0){
     for(var i = startGridY; i <= finishGridY; i++ ){
-      controlRegions[3] += (this.grid[startGridX - 1][i].length + this.grid[startGridX][i].length - 1);   
+      controlRegions[3] += (this.grid[startGridX - 1][i].length + this.grid[startGridX][i].length - 1);
     }
   }
   var min = Integer.MAX_VALUE;
@@ -1653,24 +1809,24 @@ CoSELayout.prototype.findPlaceforPrunedNode = function(nodeData){
       min = controlRegions[j];
       minCount = 1;
       minIndex = j;
-    }  
+    }
     else if(controlRegions[j] == min){
-      minCount++;  
+      minCount++;
     }
   }
-  
+
   if(minCount == 3 && min == 0){
     if(controlRegions[0] == 0 && controlRegions[1] == 0 && controlRegions[2] == 0){
-      gridForPrunedNode = 1;    
+      gridForPrunedNode = 1;
     }
     else if(controlRegions[0] == 0 && controlRegions[1] == 0 && controlRegions[3] == 0){
-      gridForPrunedNode = 0;  
+      gridForPrunedNode = 0;
     }
     else if(controlRegions[0] == 0 && controlRegions[2] == 0 && controlRegions[3] == 0){
-      gridForPrunedNode = 3;  
+      gridForPrunedNode = 3;
     }
     else if(controlRegions[1] == 0 && controlRegions[2] == 0 && controlRegions[3] == 0){
-      gridForPrunedNode = 2;  
+      gridForPrunedNode = 2;
     }
   }
   else if(minCount == 2 && min == 0){
@@ -1726,29 +1882,29 @@ CoSELayout.prototype.findPlaceforPrunedNode = function(nodeData){
   }
   else if(minCount == 4 && min == 0){
     var random = Math.floor(Math.random() * 4);
-    gridForPrunedNode = random;  
+    gridForPrunedNode = random;
   }
   else {
     gridForPrunedNode = minIndex;
   }
-  
+
   if(gridForPrunedNode == 0) {
     prunedNode.setCenter(nodeToConnect.getCenterX(),
-                         nodeToConnect.getCenterY() - nodeToConnect.getHeight()/2 - FDLayoutConstants.DEFAULT_EDGE_LENGTH - prunedNode.getHeight()/2);  
+                         nodeToConnect.getCenterY() - nodeToConnect.getHeight()/2 - FDLayoutConstants.DEFAULT_EDGE_LENGTH - prunedNode.getHeight()/2);
   }
   else if(gridForPrunedNode == 1) {
     prunedNode.setCenter(nodeToConnect.getCenterX() + nodeToConnect.getWidth()/2 + FDLayoutConstants.DEFAULT_EDGE_LENGTH + prunedNode.getWidth()/2,
-                         nodeToConnect.getCenterY());  
+                         nodeToConnect.getCenterY());
   }
   else if(gridForPrunedNode == 2) {
     prunedNode.setCenter(nodeToConnect.getCenterX(),
-                         nodeToConnect.getCenterY() + nodeToConnect.getHeight()/2 + FDLayoutConstants.DEFAULT_EDGE_LENGTH + prunedNode.getHeight()/2);  
+                         nodeToConnect.getCenterY() + nodeToConnect.getHeight()/2 + FDLayoutConstants.DEFAULT_EDGE_LENGTH + prunedNode.getHeight()/2);
   }
-  else { 
+  else {
     prunedNode.setCenter(nodeToConnect.getCenterX() - nodeToConnect.getWidth()/2 - FDLayoutConstants.DEFAULT_EDGE_LENGTH - prunedNode.getWidth()/2,
-                         nodeToConnect.getCenterY());  
+                         nodeToConnect.getCenterY());
   }
-  
+
 };
 
 module.exports = CoSELayout;
